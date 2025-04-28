@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 
 export default function NewPostPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");

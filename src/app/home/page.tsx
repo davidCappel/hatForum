@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { auth } from "@/auth";
+import { useEffect, useState, Suspense } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,14 +9,15 @@ import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 
-export default function HomePage() {
+// Create a component that uses searchParams
+function HomeContent() {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "created_at");
-  const [sortOrder, setSortOrder] = useState(searchParams.get("order") || "desc");
+  const [sortOrder] = useState(searchParams.get("order") || "desc");
   const [selectedFlag, setSelectedFlag] = useState(searchParams.get("flag") || "");
   const [showContent, setShowContent] = useState(false);
   const [showImages, setShowImages] = useState(false);
@@ -272,5 +272,19 @@ export default function HomePage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+        <p className="ml-2 text-gray-600 dark:text-gray-400">Loading...</p>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

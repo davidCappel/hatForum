@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { auth } from "@/auth";
 import { useSession } from "next-auth/react";
 import SignOutButton from "./signout";
 import Image from "next/image";

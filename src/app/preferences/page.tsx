@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { useTheme } from "../components/ThemeProvider";
 
 export default function PreferencesPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const { theme, setTheme } = useTheme();
   
   const [showContentOnFeed, setShowContentOnFeed] = useState(false);

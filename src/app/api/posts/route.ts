@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { createAdminClient } from '@/lib/supabase';
 import { auth } from '@/auth';
 
+type SortColumn = 'created_at' | 'upvotes' | 'title';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
   }
   
   
-  query = query.order(sort as any, { ascending: order === 'asc' });
+  query = query.order(sort as SortColumn, { ascending: order === 'asc' });
   
   const { data, error } = await query;
   

@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase';
 import { auth } from '@/auth';
 
 // Get user preferences
-export async function GET(request: NextRequest) {
+export async function GET() {
   const session = await auth();
   
   if (!session) {

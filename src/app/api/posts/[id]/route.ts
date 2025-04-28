@@ -1,4 +1,3 @@
-// src/app/api/posts/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { auth } from '@/auth';

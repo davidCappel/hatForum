@@ -20,7 +20,7 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    // Close menu when path changes
+    
     setIsMenuOpen(false);
   }, [pathname]);
 

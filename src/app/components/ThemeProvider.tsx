@@ -10,22 +10,21 @@ type ThemeContextType = {
 };
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: "light", // Default value
-  setTheme: () => {}, // Empty function as default
+  theme: "light",
+  setTheme: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("system");
   const [mounted, setMounted] = useState(false);
 
-  // Load theme preference from API when component mounts
   useEffect(() => {
     const fetchUserPreferences = async () => {
       try {
         const res = await fetch("/api/preferences");
         if (res.ok) {
           const data = await res.json();
-          setTheme(data.color_scheme);
+          setTheme(data.color_scheme || "system");
         }
       } catch (error) {
         console.error("Failed to fetch user preferences:", error);
@@ -36,13 +35,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     fetchUserPreferences();
   }, []);
 
-  // Update actual theme when preference changes
   useEffect(() => {
     if (!mounted) return;
 
     const root = window.document.documentElement;
+
     root.classList.remove("light", "dark");
 
+    
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
@@ -51,19 +51,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       root.classList.add(theme);
     }
+    
+    
+    localStorage.setItem("theme", theme);
+    
   }, [theme, mounted]);
 
-  // When theme changes, update user preferences in the database
+  
   useEffect(() => {
     if (!mounted) return;
 
     const updateThemePreference = async () => {
       try {
+        
         const res = await fetch("/api/preferences");
         if (res.ok) {
           const currentPrefs = await res.json();
           
-          await fetch("/api/preferences", {
+         
+          const updateRes = await fetch("/api/preferences", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -73,17 +79,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
               color_scheme: theme,
             }),
           });
+          
+          if (!updateRes.ok) {
+            const errorData = await updateRes.json();
+            console.error("Failed to update theme preference:", errorData);
+          }
         }
       } catch (error) {
         console.error("Failed to update theme preference:", error);
       }
     };
 
-    updateThemePreference();
+    
+    if (theme !== "system") {
+      updateThemePreference();
+    }
   }, [theme, mounted]);
 
+  
   if (!mounted) {
-    // Prevent theme flash during hydration
     return <>{children}</>;
   }
 

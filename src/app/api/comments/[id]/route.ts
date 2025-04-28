@@ -1,9 +1,8 @@
-// src/app/api/comments/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { auth } from '@/auth';
 
-// Delete a comment
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -16,10 +15,10 @@ export async function DELETE(
   }
   
   try {
-    // Use admin client to bypass RLS
+    
     const adminClient = createAdminClient();
     
-    // Verify the current user owns this comment
+   
     const { data: comment, error: fetchError } = await adminClient
       .from('comments')
       .select('user_id')
@@ -35,7 +34,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized to delete this comment' }, { status: 403 });
     }
     
-    // Delete the comment
+    
     const { error } = await adminClient
       .from('comments')
       .delete()

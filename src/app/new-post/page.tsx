@@ -64,59 +64,63 @@ export default function NewPostPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (!title.trim()) {
+    setErrorMessage("Title is required");
+    return;
+  }
+  
+  setIsSubmitting(true);
+  setErrorMessage("");
+  
+  try {
+    let finalImageUrl = null; // Default to null
     
-    if (!title.trim()) {
-      setErrorMessage("Title is required");
-      return;
+    // Only try to upload an image if the user has selected one
+    if (useLocalImage && selectedFile) {
+      const uploadedUrl = await uploadImage();
+      if (uploadedUrl) {
+        finalImageUrl = uploadedUrl;
+      } else {
+        // If upload failed but it was attempted, show error and stop
+        setIsSubmitting(false);
+        return;
+      }
+    } else if (!useLocalImage && imageUrl) {
+      // Use provided URL if that option was selected
+      finalImageUrl = imageUrl;
     }
     
-    setIsSubmitting(true);
-    setErrorMessage("");
+    const res = await fetch("/api/posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title,
+        content,
+        image_url: finalImageUrl, // Can be null
+        external_link: externalLink || null,
+        flag,
+        referenced_post_id: referencedPostId || null,
+      }),
+    });
     
-    try {
-      let finalImageUrl = imageUrl;
-      
-      // If user wants to use a local image, upload it first
-      if (useLocalImage && selectedFile) {
-        const uploadedUrl = await uploadImage();
-        if (uploadedUrl) {
-          finalImageUrl = uploadedUrl;
-        } else {
-          setIsSubmitting(false);
-          return; // Stop if upload failed
-        }
-      }
-      
-      const res = await fetch("/api/posts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          content,
-          image_url: finalImageUrl,
-          external_link: externalLink,
-          flag,
-          referenced_post_id: referencedPostId || null,
-        }),
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to create post");
-      }
-      
-      const post = await res.json();
-      router.push(`/posts/${post.id}`);
-    } catch (error) {
-      console.error("Error:", error);
-      setErrorMessage(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      setIsSubmitting(false);
+    const responseData = await res.json();
+    
+    if (!res.ok) {
+      throw new Error(responseData.error || "Failed to create post");
     }
-  };
+    
+    router.push(`/posts/${responseData.id}`);
+  } catch (error) {
+    console.error("Error:", error);
+    setErrorMessage(error instanceof Error ? error.message : "An error occurred");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="max-w-2xl mx-auto">

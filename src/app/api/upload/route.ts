@@ -1,7 +1,7 @@
 // src/app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 import { auth } from '@/auth';
 
 export async function POST(request: NextRequest) {
@@ -39,21 +39,53 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('hat-images')
-      .upload(filePath, buffer, {
-        contentType: file.type,
-        cacheControl: '3600',
-      });
+    // Use admin client to bypass RLS with retry logic
+    const adminClient = createAdminClient();
     
-    if (error) {
-      console.error('Supabase storage error:', error);
-      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+    // Retry logic for upload
+    let retries = 3;
+    let uploadError = null;
+    let data = null;
+    
+    while (retries > 0) {
+      try {
+        const result = await adminClient.storage
+          .from('hat-images')
+          .upload(filePath, buffer, {
+            contentType: file.type,
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (result.error) {
+          uploadError = result.error;
+          retries--;
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        
+        data = result.data;
+        uploadError = null;
+        break;
+      } catch (err) {
+        uploadError = err;
+        retries--;
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    if (uploadError || !data) {
+      console.error('Supabase storage error after retries:', uploadError);
+      return NextResponse.json({ 
+        error: 'Failed to upload file',
+        details: uploadError
+      }, { status: 500 });
     }
     
     // Get public URL
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = adminClient.storage
       .from('hat-images')
       .getPublicUrl(filePath);
     
@@ -61,6 +93,9 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('Error uploading file:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
